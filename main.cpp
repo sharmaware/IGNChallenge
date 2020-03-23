@@ -2,6 +2,10 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>  // defines the type std::ostringstream
+#include <iomanip>
+
+
 #include <vector>
 #include <list>
 #include <unordered_map>
@@ -54,21 +58,26 @@ int main(int argc, const char * argv[]) {
     list<quest> quests;
     loadQuests("/Users/saarthaksharma/Desktop/IGNCodeChallenge/IGNCodeChallenge/quests.txt", quests);
     quests.sort();
-//    sort(quests.begin(), quests.end());
     
     
+    ostringstream oss;
+    
+    
+    cout << left << setw(30) << "Name" <<  setw(10) << "Start Day" << setw(10) << "Duration" <<  setw(10) << "Reward" <<  endl << endl;
     for(auto it = quests.begin(); it != quests.end(); it++){
-        cout << it->name << "         " << it->start << "      " << it->duration << "       " << it->reward << "       " <<it->reward/it->duration << endl;
+        cout << setw(30) << it->name << setw(10) << it->start << setw(10) << it->duration << setw(10) << it->reward << setw(10) << endl;
     }
-
+    
+    cout << endl << "Solution" << endl<< endl;
     vector<quest> order;
     int max = maxReward(quests, 0, order);
-    cout << max << endl;
+//    cout << max << endl;
+//
+//    cout << order.size() << endl;
     
-    cout << order.size() << endl;
-    
+    cout << setw(30) << "Name" <<  setw(10) << "Start Day" << setw(10) << "Duration" <<  setw(10) << "Reward" <<  endl << endl;
     for(int i = 0; i < order.size(); i++){
-        cout << order[i].name << " " << order[i].start << " " << order[i].duration <<  " " << order[i].reward <<  endl;
+        cout << setw(30) << order[i].name <<  setw(10) << order[i].start << setw(10) << order[i].duration <<  setw(10) << order[i].reward <<  endl;
     }
     
 }
@@ -99,10 +108,11 @@ int maxReward(list<quest> quests, int reward, vector<quest> &order){
     //returning max
     if(maxCurrent > maxNoCurrent){
         //add members of currentOrder to order
+        order.push_back(current);
         for(int i = 0; i < currentOrder.size(); i++){
             order.push_back(currentOrder[i]);
         }
-        order.push_back(current);
+        
         
         return maxCurrent;
     }
