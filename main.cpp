@@ -1,18 +1,21 @@
-
+//I/O
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <sstream>  // defines the type std::ostringstream
+#include <sstream>
 #include <iomanip>
-
 
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <functional>
+
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
-class quest{
+class Quest{
 public:
     string name;
     int start;
@@ -22,8 +25,15 @@ public:
     string location;
     string giver;
     
-    bool operator< (const quest &other) const {
+    bool operator< (const Quest &other) const {
         if(start < other.start){
+            return true;
+        }
+        return false;
+    }
+    
+    bool operator== (const Quest &other) const {
+        if(name == other.name){
             return true;
         }
         return false;
@@ -31,11 +41,22 @@ public:
     
 };
 
-void loadQuests(string path, list<quest> &quests){
+struct Hasher{
+    size_t operator()(const Quest &q) const{
+        return hash<string>()(q.name); //hashing based on name of quest
+    }
+};
+
+struct OutputObj{
+    vector<Quest> quests;
+    int reward;
+};
+
+void loadQuests(string path, list<Quest> &quests){
     ifstream infile (path);
     
     while(true){
-        quest q;
+        Quest q;
         getline(infile, q.name);
         
         if(q.name == ""){
@@ -51,59 +72,82 @@ void loadQuests(string path, list<quest> &quests){
     
 }
 
-int maxReward(list<quest> quests, int reward, vector<quest> &order);
+int maxReward(list<Quest> quests, vector<Quest> &order, unordered_map<Quest, OutputObj, Hasher> &map);
 
 int main(int argc, const char * argv[]) {
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    
     //using list for fast erasing from front
-    list<quest> quests;
+    list<Quest> quests;
     loadQuests("/Users/saarthaksharma/Desktop/IGNCodeChallenge/IGNCodeChallenge/quests.txt", quests);
     quests.sort();
-    
-    
-    ostringstream oss;
-    
-    
-    cout << left << setw(30) << "Name" <<  setw(10) << "Start Day" << setw(10) << "Duration" <<  setw(10) << "Reward" <<  endl << endl;
+           
+    ostringstream header;
+    header << left << setw(30) << "Name" <<  setw(10) << "Start Day" << setw(10) << "Duration" <<  setw(10) << "Reward" <<  endl << endl;
+    cout << left << header.str();
     for(auto it = quests.begin(); it != quests.end(); it++){
         cout << setw(30) << it->name << setw(10) << it->start << setw(10) << it->duration << setw(10) << it->reward << setw(10) << endl;
     }
     
     cout << endl << "Solution" << endl<< endl;
-    vector<quest> order;
-    int max = maxReward(quests, 0, order);
-//    cout << max << endl;
-//
-//    cout << order.size() << endl;
+    unordered_map<Quest, OutputObj, Hasher> map;
+    
+    vector<Quest> order;
+    int reward = maxReward(quests, order, map);
     
     cout << setw(30) << "Name" <<  setw(10) << "Start Day" << setw(10) << "Duration" <<  setw(10) << "Reward" <<  endl << endl;
     for(int i = 0; i < order.size(); i++){
         cout << setw(30) << order[i].name <<  setw(10) << order[i].start << setw(10) << order[i].duration <<  setw(10) << order[i].reward <<  endl;
     }
+    cout << "Total Reward: " << reward << endl;
+    
+    cout << map.size() <<endl;
+    
+    
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    duration<double, std::milli> time_span = t2 - t1;
+    std::cout << "It took "  << time_span.count() << " milliseconds.";
+    std::cout << std::endl;
     
 }
 
-//create map to return values?
 //reconstruct solution by passing copy by reference in end of function
 
-int maxReward(list<quest> quests, int reward, vector<quest> &order){
+int maxReward(list<Quest> quests, vector<Quest> &order, unordered_map<Quest, OutputObj, Hasher> &map){
     if(quests.size() == 0){
-        return reward;
+        return 0;
     }
     
-    quest current = quests.front();
+    Quest current = quests.front();
     
     //finding max without current
     quests.pop_front();
-    vector<quest> noCurrentOrder;
-    int maxNoCurrent = maxReward(quests, reward, noCurrentOrder);
+    vector<Quest> noCurrentOrder;
+    
+    
+    int maxNoCurrent = maxReward(quests, noCurrentOrder, map);
     
     //removing quests that overlap binary search here??
     while(quests.size() > 0 && quests.front().start < current.start + current.duration){
         quests.pop_front();
     }
     //finding max with current
-    vector<quest> currentOrder;
-    int maxCurrent = maxReward(quests, reward+current.reward, currentOrder);
+    vector<Quest> currentOrder;
+    int maxCurrent = 0;
+    
+    auto it = map.find(current);
+    
+    if(it != map.end()){
+//        cout << "here" << endl;
+        maxCurrent = it->second.reward;
+        currentOrder = it->second.quests;
+    }else{
+        maxCurrent = maxReward(quests, currentOrder, map) + current.reward;
+        OutputObj obj;
+        obj.reward = maxCurrent;
+        obj.quests = currentOrder;
+        map[current] = obj;
+    }
     
     //returning max
     if(maxCurrent > maxNoCurrent){
@@ -112,8 +156,7 @@ int maxReward(list<quest> quests, int reward, vector<quest> &order){
         for(int i = 0; i < currentOrder.size(); i++){
             order.push_back(currentOrder[i]);
         }
-        
-        
+
         return maxCurrent;
     }
     
